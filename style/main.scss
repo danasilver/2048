@@ -468,8 +468,15 @@ hr {
   float: right;
 }
 
+.game-time {
+  margin-top: 20px;
+  .current-time {
+    float: right;
+  }
+}
+
 .game-explanation {
-  margin-top: 50px;
+  margin-top: 30px;
 }
 
 @include smaller($mobile-threshold) {
