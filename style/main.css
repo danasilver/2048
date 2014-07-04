@@ -579,8 +579,13 @@ hr {
   text-align: center;
   float: right; }
 
+.game-time {
+  margin-top: 20px; }
+  .game-time .current-time {
+    float: right; }
+
 .game-explanation {
-  margin-top: 50px; }
+  margin-top: 30px; }
 
 .sharing {
   margin-top: 20px;

@@ -3,6 +3,8 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.bestTimeContainer  = document.querySelector(".best-time");
+  this.timeContainer      = document.querySelector(".current-time");
   this.sharingContainer = document.querySelector(".score-sharing");
 
   this.score = 0;
@@ -24,6 +26,8 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
+    self.updateTime(metadata.time);
+    self.updateBestTime(metadata.bestTime);
 
     if (metadata.terminated) {
       if (metadata.over) {
@@ -127,6 +131,22 @@ HTMLActuator.prototype.updateScore = function (score) {
 
 HTMLActuator.prototype.updateBestScore = function (bestScore) {
   this.bestContainer.textContent = bestScore;
+};
+
+HTMLActuator.prototype.formatTime = function (time) {
+  var minutes = Math.floor(time / 60);
+  var seconds = time % 60;
+  var paddedSeconds = (seconds + "").length === 2 ? seconds : "0" + seconds;
+
+  return minutes + ":" + paddedSeconds;
+};
+
+HTMLActuator.prototype.updateTime = function (time) {
+  this.timeContainer.textContent = this.formatTime(time);
+};
+
+HTMLActuator.prototype.updateBestTime = function (bestTime) {
+  this.bestTimeContainer.textContent = this.formatTime(bestTime);
 };
 
 HTMLActuator.prototype.message = function (won) {
