@@ -16,6 +16,7 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
 // Restart the game
 GameManager.prototype.restart = function () {
   this.storageManager.clearGameState();
+  this.stopTimer();
   this.actuator.continueGame(); // Clear the game won/lost message
   this.setup();
 };
@@ -23,12 +24,28 @@ GameManager.prototype.restart = function () {
 // Keep playing after winning (allows going over 2048)
 GameManager.prototype.keepPlaying = function () {
   this.keepPlaying = true;
+  this.startTimer();
   this.actuator.continueGame(); // Clear the game won/lost message
 };
 
 // Return true if the game is lost, or has won and the user hasn't kept playing
 GameManager.prototype.isGameTerminated = function () {
   return this.over || (this.won && !this.keepPlaying);
+};
+
+// Start the timer and assign this.timer so it can be cleared later
+GameManager.prototype.startTimer = function () {
+  var self = this;
+
+  this.timer = setInterval(function() {
+    self.actuator.updateTime(++self.time);
+    self.storageManager.setGameState(self.serialize());
+  }, 1000);
+};
+
+// Clear the timer
+GameManager.prototype.stopTimer = function () {
+  clearInterval(this.timer);
 };
 
 // Set up the game
@@ -40,12 +57,14 @@ GameManager.prototype.setup = function () {
     this.grid        = new Grid(previousState.grid.size,
                                 previousState.grid.cells); // Reload grid
     this.score       = previousState.score;
+    this.time        = previousState.time;
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
+    this.time        = 0;
     this.over        = false;
     this.won         = false;
     this.keepPlaying = false;
@@ -53,6 +72,9 @@ GameManager.prototype.setup = function () {
     // Add the initial tiles
     this.addStartTiles();
   }
+
+  // In either case don't start the timer until a move occurs
+  this.movesStarted = false;
 
   // Update the actuator
   this.actuate();
@@ -81,6 +103,16 @@ GameManager.prototype.actuate = function () {
     this.storageManager.setBestScore(this.score);
   }
 
+  if ((this.won && !this.keepPlaying) || this.over) this.stopTimer();
+
+  // Only keep track of the best time if the game is exactly won
+  // (not keepPlaying) and the previous best time is worse or unset (i.e. 0)
+  if ((this.won && !this.keepPlaying) &&
+     (this.storageManager.getBestTime() > this.time
+      || this.storageManager.getBestTime() === 0)) {
+    this.storageManager.setBestTime(this.time);
+  }
+
   // Clear the state when the game is over (game over only, not win)
   if (this.over) {
     this.storageManager.clearGameState();
@@ -91,8 +123,10 @@ GameManager.prototype.actuate = function () {
   this.actuator.actuate(this.grid, {
     score:      this.score,
     over:       this.over,
+    time:       this.time,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
+    bestTime:   this.storageManager.getBestTime(),
     terminated: this.isGameTerminated()
   });
 
@@ -104,6 +138,7 @@ GameManager.prototype.serialize = function () {
     grid:        this.grid.serialize(),
     score:       this.score,
     over:        this.over,
+    time:        this.time,
     won:         this.won,
     keepPlaying: this.keepPlaying
   };
@@ -130,6 +165,12 @@ GameManager.prototype.moveTile = function (tile, cell) {
 GameManager.prototype.move = function (direction) {
   // 0: up, 1: right, 2: down, 3: left
   var self = this;
+
+  // If this is the first move start the timer and set movesStarted to true
+  if (this.movesStarted === false) {
+    this.startTimer();
+    this.movesStarted = true;
+  }
 
   if (this.isGameTerminated()) return; // Don't do anything if the game's over
 
